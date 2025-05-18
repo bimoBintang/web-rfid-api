@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  password     String   // Hashed password
+  email        String   @unique
+  role         Role     @default(SUPER_ADMIN)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relasi
+  activities   AdminActivity[]
+
+  @@map("admins")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  nim          String   @unique 
+  fullName     String
+  department   String?
+  position     String?
+  email        String?
+  phoneNumber  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relasi
+  rfidCard     RfidCard?
+  attendances  Attendance[]
+
+  @@map("users")
+}
+
+model RfidCard {
+  id           Int      @id @default(autoincrement())
+  cardUid      String   @unique 
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId       Int      @unique 
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendances  Attendance[]
+
+  @@map("rfid_cards")
+}
+
+model Device {
+  id           Int      @id @default(autoincrement())
+  deviceName   String
+  macAddress   String   @unique
+  ipAddress    String?
+  location     String?
+  isActive     Boolean  @default(true)
+  lastOnline   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relasi
+  attendances  Attendance[]
+  telemetry    DeviceTelemetry[]
+  apiToken     ApiToken?
+
+  @@map("devices")
+}
+
+model Schedule {
+  id           Int      @id @default(autoincrement())
+  name         String   // Nama jadwal (contoh: "Class Iot")
+  checkInStart DateTime // Waktu mulai untuk absen masuk (jam:menit:detik)
+  checkInEnd   DateTime // Waktu akhir untuk absen masuk
+  checkOutStart DateTime // Waktu mulai untuk absen keluar
+  checkOutEnd  DateTime // Waktu akhir untuk absen keluar
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relasi
+  attendances  Attendance[]
+
+  @@map("schedules")
+}
+
+// Model untuk Absensi
+model Attendance {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @default(now()) @db.Date
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  status       AttendanceStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relasi
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rfidCardId   Int
+  rfidCard     RfidCard @relation(fields: [rfidCardId], references: [id], onDelete: Cascade)
+  deviceId     Int
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  scheduleId   Int
+  schedule     Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date]) // Satu pengguna hanya dapat memiliki satu catatan kehadiran per hari
+  @@index([date])
+  @@index([userId])
+  @@index([rfidCardId])
+  @@map("attendances")
+}
+
+// Model untuk Log Aktivitas Admin
+model AdminActivity {
+  id           Int       @id @default(autoincrement())
+  action       String    // Tindakan yang dilakukan (misalnya "CREATE_USER", "UPDATE_DEVICE")
+  description  String    // Deskripsi detail tentang tindakan
+  ipAddress    String?   // IP address dari admin
+  timestamp    DateTime  @default(now())
+  
+  // Relasi
+  adminId      Int
+  admin        Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([timestamp])
+  @@index([adminId])
+  @@map("admin_activities")
+}
+
+// Model untuk Telemetri Perangkat
+model DeviceTelemetry {
+  id           Int      @id @default(autoincrement())
+  temperature  Float?
+  humidity     Float?
+  batteryLevel Float?
+  signalStrength Int?
+  timestamp    DateTime @default(now())
+
+  // Relasi
+  deviceId     Int
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([timestamp])
+  @@index([deviceId])
+  @@map("device_telemetry")
+}
+
+// Model untuk Token API (untuk komunikasi ESP32 dengan Next.js)
+model ApiToken {
+  id           Int      @id @default(autoincrement())
+  token        String   @unique
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime?
+
+  // Relasi
+  deviceId     Int      @unique
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@map("api_tokens")
+}
+
+// Model untuk Pengaturan Sistem
+model SystemSetting {
+  id           Int      @id @default(autoincrement())
+  key          String   @unique
+  value        String
+  description  String?
+  updatedAt    DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// Enumerasi untuk status kehadiran
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  LEAVE
+  PENDING
+}
+
+// Enumerasi untuk peran admin
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+}

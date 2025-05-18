@@ -1,0 +1,165 @@
+import { verfiyAdminToken } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
+
+export async function GET(req: Request, {params}: {params: {id: string}}) {
+    try {
+        const adminAuth = await verfiyAdminToken(req);
+        if(!adminAuth) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
+        
+        const id = parseInt(params.id);
+
+        const user = await prisma.user.findUnique({
+            where: {id},
+            include: {
+                rfidCard: true,
+                attendances: {
+                    orderBy: {date: 'desc'},
+                    take: 30,
+                    include: {schedule: true}
+                }
+            }
+        });
+
+        if(!user) {
+            return NextResponse.json({error: "User not found"}, {status: 404});
+        };
+
+        return NextResponse.json({user});
+    } catch (error) {
+        return NextResponse.json({error: "Internal server error"}, {status: 500});
+    }
+};
+
+export async function PATCH(req: Request, {params}: {params: {id: string}}) {
+    try {
+        const adminAuth = await verfiyAdminToken(req);
+        if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
+
+        const id = parseInt(params.id);
+        const { fullName, department, position, email, phoneNumber, isActive, cardUid } = await req.json();
+
+        const existingUser = await prisma.user.findUnique({
+            where: {id}, 
+            include: {rfidCard: true}
+        });
+
+        if(!existingUser) {
+            return NextResponse.json({message: "User not found"}, {status: 404});
+        };
+
+        const updatedUser = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.update({
+                where: {id},
+                data: {
+                    fullName,
+                    department,
+                    position,
+                    email,
+                    phoneNumber,
+                    isActive
+                }
+            });
+
+            if(cardUid) {
+                if(existingUser.rfidCard) {
+                    if(existingUser.rfidCard.cardUid !== cardUid) {
+                        const existingCard = await tx.rfidCard.findUnique({
+                            where: {cardUid}
+                        });
+
+                        if(existingCard) {
+                            return NextResponse.json({error: "Card already assigned to another user"}, {status: 400});
+                        };
+
+                        await tx.rfidCard.update({
+                            where: {id: existingUser.rfidCard.id},
+                            data: {cardUid}
+                        });
+                    }
+                } else {
+                    const existingCard = await tx.rfidCard.findUnique({
+                        where: {cardUid}
+                    });
+
+                    if(existingCard) {
+                        return NextResponse.json({error: "RFID Card already assigned to another user"}, {status: 400});
+                    };
+
+                    await tx.rfidCard.create({
+                        data: {
+                            cardUid,
+                            userId: id
+                        }
+                    });
+                }
+            }
+
+            return user;
+        }).catch((error) => {
+            if(error.message === "Card already assigned to another user") {
+                throw new Error('RFID card already assigned to another user')
+            };
+            throw error;
+        });
+
+        await prisma.adminActivity.create({
+            data: {
+                adminId: adminAuth.id,
+                action: "UPDATED_USER",
+                description: `Updated user ${updatedUser.fullName} with ID ${id}`,
+                ipAddress: req.headers.get('x-forwarded-for') || ''
+            }
+        });
+
+        return NextResponse.json({
+            message: 'user updated successfully',
+            user: updatedUser
+        });
+    } catch (error) {
+        if (error instanceof Error && error.message === 'RFID card already assigned to another user') {
+            return NextResponse.json(
+              { error: error.message },
+              { status: 400 }
+            );
+        };
+
+        return NextResponse.json({error: "Update user failed"}, {status: 406});
+    }
+};
+
+
+export async function DELETE(req: Request, {params}: {params: {id: string}}) {
+    try {
+        const adminAuth = await verfiyAdminToken(req);
+        if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
+
+        const id = parseInt(params.id);
+
+        const user = await prisma.user.findUnique({where: {id}});
+        if(!user) {
+            return NextResponse.json({error: "User not found"}, {status: 404});
+        };
+
+        await prisma.user.delete({where: {id}});
+
+        await prisma.adminActivity.create({
+            data: {
+                adminId: adminAuth.id,
+                action: "DELETED_USER",
+                description: `Deleted user ${user.fullName} with ID ${id}`,
+                ipAddress: req.headers.get('x-forwarded-for') || '',
+                timestamp: new Date(),
+            }
+        });
+
+        return NextResponse.json({
+            message: "User deleted successfully"
+        })
+    } catch (error) {
+        return NextResponse.json(
+            {error: "Deleted user failed"},
+            {status: 406}
+        )
+    }
+}
