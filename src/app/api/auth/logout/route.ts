@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verfiyAdminToken, logAdminActivity } from "@/lib/auth";
+import { verifyAdminToken, logAdminActivity } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
     try {
@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
         const authHeader = req.headers.get('authorization');
 
         if(!authHeader && authHeader?.startsWith('Bearer')) {
-            const authResult = await verfiyAdminToken(req);
+            const authResult = await verifyAdminToken(req);
 
             if (!authResult.success) {
                 return NextResponse.json({

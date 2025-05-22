@@ -1,10 +1,10 @@
-import { verfiyDeviceToken } from "@/lib/auth";
+import { verifyDeviceToken } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
-        const deviceAuth = await verfiyDeviceToken(req);
+        const deviceAuth = await verifyDeviceToken(req);
         if(!deviceAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
         const { temperature, humidity, batteryLevel, signalStrength } = await req.json();

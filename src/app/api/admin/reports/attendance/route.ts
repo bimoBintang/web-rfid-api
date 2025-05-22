@@ -1,11 +1,11 @@
-import { verfiyAdminToken } from "@/lib/auth";
+import { verifyAdminToken } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 
 export async function GET(req: Request) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req);
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
         const { searchParams } = new URL(req.url);

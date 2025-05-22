@@ -5,10 +5,8 @@ import { initCronJobs } from '@/lib/cornScheduler';
 let cronJobsInitialized = false;
 let cronJobs: any = null;
 
-// This endpoint initializes the cron jobs on server startup
 export async function GET(req: Request) {
   try {
-    // Check for secret key to prevent unauthorized access
     const url = new URL(req.url);
     const secretKey = url.searchParams.get('key');
     
@@ -31,24 +29,20 @@ export async function GET(req: Request) {
   }
 }
 
-// Webhook endpoint for direct execution of the inactive users check
 export async function POST(req: Request) {
   try {
-    // Require authorization for manual trigger
     const authHeader = req.headers.get('authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    // Extract token and validate
     const token = authHeader.split(' ')[1];
     
     if (token !== process.env.CRON_WEBHOOK_TOKEN) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
     
-    // Extract which job to run from the request body
     const { job } = await req.json();
     
     if (job === 'inactiveUsers') {

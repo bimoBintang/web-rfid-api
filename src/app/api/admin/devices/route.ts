@@ -1,11 +1,11 @@
-import { verfiyAdminToken } from "@/lib/auth";
+import { verifyAdminToken } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
 
 export async function GET(req: Request) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req);
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
         const devices = await prisma.device.findMany({include: {apiToken: true}});
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req);
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
         const { deviceName, macAddress, location } = await req.json();

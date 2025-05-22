@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import prisma from "./prisma";
 import jwt from "jsonwebtoken";
 
@@ -14,7 +13,8 @@ interface AdminActivityPayload {
     description: string;
     ipAddress?: string
 }
-export async function verfiyAdminToken(req: NextRequest | Request) {
+
+export async function verifyAdminToken(req: Request) {
     try {
         const authHeader = req.headers.get('authorization');
         if(!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -23,7 +23,7 @@ export async function verfiyAdminToken(req: NextRequest | Request) {
 
         const token = authHeader.split(' ')[1];
         if(!token) {
-            return {succes: false, message: "Unauthorized: Invalid token format"}
+            return {success: false, message: "Unauthorized: Invalid token format"}
         };
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as AdminJwtPayload;
@@ -50,8 +50,7 @@ export async function verfiyAdminToken(req: NextRequest | Request) {
     }
 };
 
-
-export async function verfiyDeviceToken(req: NextRequest | Request) {
+export async function verifyDeviceToken(req: Request) {
     try {
         const authHeader = req.headers.get('authorization');
         if(!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -60,7 +59,7 @@ export async function verfiyDeviceToken(req: NextRequest | Request) {
 
         const token = authHeader.split(' ')[1];
         if(!token) {
-            return {succes: false, message: "Unauthorized: Invalid token format"}
+            return {success: false, message: "Unauthorized: Invalid token format"}
         };
 
         const apiToken = await prisma.apiToken.findUnique({
@@ -91,17 +90,16 @@ export async function verfiyDeviceToken(req: NextRequest | Request) {
     }
 };
 
-
 export function generateAdminToken({id, username, role}: AdminJwtPayload) {
     return jwt.sign({id, username, role}, process.env.JWT_SECRET as string, {expiresIn: '1h'});
 };
 
 export function generateDeviceToken() {
     const character = process.env.RANDOM_CHARACTER as string;
-    const tokenLenght = 32;
+    const tokenLength = 32;
 
     let token = '';
-    for (let i = 0; i < tokenLenght; i++) {
+    for (let i = 0; i < tokenLength; i++) {
         token += character.charAt(Math.floor(Math.random() * character.length));
     };
 
@@ -111,7 +109,8 @@ export function generateDeviceToken() {
 export function hasRole(role: string | string[], userRole: string) {
     if(Array.isArray(role)) {
         return role.includes(userRole);
-    }
+    } 
+    return role === userRole;
 };
 
 export async function logAdminActivity({adminId, action, description, ipAddress}: AdminActivityPayload) {
@@ -139,4 +138,4 @@ export function isValidEmail(email: string) {
 export function isValidMacAddress(mac: string) {
     const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
     return macRegex.test(mac);
-  }
+}

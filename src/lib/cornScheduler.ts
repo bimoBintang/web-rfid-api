@@ -1,11 +1,9 @@
 import { CronJob } from 'cron';
 import { updateInactiveUsers } from '@/lib/inactiveUsers';
 
-// Initialize cron jobs for system tasks
 export function initCronJobs() {
-  // Run every day at midnight
   const inactiveUsersJob = new CronJob(
-    '0 0 * * *', // Cron expression: At 00:00 (midnight) every day
+    '0 0 * * *', 
     async () => {
       console.log('Running scheduled task: Update inactive users');
       try {
@@ -19,23 +17,21 @@ export function initCronJobs() {
         console.error('Error in inactive users scheduled task:', error);
       }
     },
-    null, // onComplete
-    false, // start
-    'UTC' // timezone
+    null, 
+    false, 
+    'UTC' 
   );
 
-  // Start the job
   inactiveUsersJob.start();
   
   console.log('Cron jobs initialized');
   
-  // Return the jobs so they can be stopped if needed
+
   return {
     inactiveUsersJob
   };
 }
 
-// Function to clean up cron jobs (useful for graceful shutdown)
 export function stopCronJobs(jobs: { inactiveUsersJob: CronJob }) {
   jobs.inactiveUsersJob.stop();
   console.log('Cron jobs stopped');

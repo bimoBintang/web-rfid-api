@@ -1,10 +1,10 @@
-import { verfiyAdminToken } from "@/lib/auth";
+import { verifyAdminToken } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request, context: {params: {id: string}}) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req); 
         if(!adminAuth) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
     
        const { params } = context;
@@ -26,7 +26,7 @@ export async function GET(req: Request, context: {params: {id: string}}) {
             return NextResponse.json({error: "User not found"}, {status: 404});
         };
 
-        // Get days since last activity
+        // GET hari sejak aktivitas terakhir
         let daysSinceLastActivity = null;
         if (user.attendances.length > 0 && user.attendances[0].checkInTime) {
             const lastActivity = new Date(user.attendances[0].checkInTime);
@@ -38,7 +38,7 @@ export async function GET(req: Request, context: {params: {id: string}}) {
         return NextResponse.json({
             user,
             daysSinceLastActivity,
-            inactiveThreshold: 90 // Including the threshold for UI reference
+            inactiveThreshold: 90 
         });
     } catch (error) {
         return NextResponse.json({error: "Internal server error"}, {status: 500});
@@ -47,7 +47,7 @@ export async function GET(req: Request, context: {params: {id: string}}) {
 
 export async function PATCH(req: Request, context: { params: { id: string } }) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req); 
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
         const { params } = context;
@@ -156,7 +156,7 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
 
 export async function DELETE(req: Request, context: { params: { id: string}}) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req); 
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
         const { params } = context;

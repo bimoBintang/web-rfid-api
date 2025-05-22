@@ -1,11 +1,11 @@
-import { verfiyAdminToken } from "@/lib/auth";
+import { verifyAdminToken } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 
 export async function GET(req: Request) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req);
         if(!adminAuth) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
 
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const adminAuth = await verfiyAdminToken(req);
+        const adminAuth = await verifyAdminToken(req);
         if(!adminAuth) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
         const {fullName, nim, email, position, phoneNumber, department, cardUid} = await req.json();
