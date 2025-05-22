@@ -66,19 +66,19 @@ export async function POST(req: Request) {
 
         const {fullName, nim, email, position, phoneNumber, department, cardUid} = await req.json();
 
-        if(!fullName || !nim || !email || !phoneNumber || !department || position) {
+        if(!fullName || !nim || !email || !phoneNumber || !department || !position) {
             return NextResponse.json({error: "Missing required fields"}, {status: 400});
         };
         
         const existingUser = await prisma.user.findUnique({where: {nim}});
         if(existingUser) {
-            return NextResponse.json({error: "nim already registered"}, {status: 400});
+            return NextResponse.json({error: "nim sudah terdaftar"}, {status: 400});
         };
 
         if(cardUid) {
             const existingCard = await prisma.rfidCard.findUnique({where: {cardUid}});
             if(existingCard) {
-                return NextResponse.json({error: "Card already registered"}, {status: 400});
+                return NextResponse.json({error: "Card sudah terdaftar"}, {status: 400});
             }
         };
 
@@ -110,19 +110,19 @@ export async function POST(req: Request) {
             data: {
                 adminId: adminAuth.id!,
                 action: "CREATE_USER",
-                description: `created User ${fullName} with NIM ${nim}`,
+                description: `membuat User ${fullName} dengan NIM ${nim}`,
                 ipAddress: req.headers.get('x-forwarded-for') || ''
             }
         });
 
         return NextResponse.json({
-            message: "User created successfully",
+            message: "berhasil membuat akunu",
             user
         }, {status: 201});
         
     } catch (error) {
         return NextResponse.json({
-            message: "Request failed",
+            message: "request gagal",
             error
         }, {status: 406});
     }

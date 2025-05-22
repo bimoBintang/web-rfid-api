@@ -2,12 +2,13 @@ import { verfiyAdminToken } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request, {params}: {params: {id: string}}) {
+export async function GET(req: Request, context: {params: {id: string}}) {
     try {
         const adminAuth = await verfiyAdminToken(req);
         if(!adminAuth) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
-        
-        const id = parseInt(params.id);
+    
+       const { params } = context;
+       const id = parseInt(params.id);
 
         const user = await prisma.user.findUnique({
             where: {id},
@@ -25,18 +26,33 @@ export async function GET(req: Request, {params}: {params: {id: string}}) {
             return NextResponse.json({error: "User not found"}, {status: 404});
         };
 
-        return NextResponse.json({user});
+        // Get days since last activity
+        let daysSinceLastActivity = null;
+        if (user.attendances.length > 0 && user.attendances[0].checkInTime) {
+            const lastActivity = new Date(user.attendances[0].checkInTime);
+            const today = new Date();
+            const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
+            daysSinceLastActivity = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        return NextResponse.json({
+            user,
+            daysSinceLastActivity,
+            inactiveThreshold: 90 // Including the threshold for UI reference
+        });
     } catch (error) {
         return NextResponse.json({error: "Internal server error"}, {status: 500});
     }
 };
 
-export async function PATCH(req: Request, {params}: {params: {id: string}}) {
+export async function PATCH(req: Request, context: { params: { id: string } }) {
     try {
         const adminAuth = await verfiyAdminToken(req);
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
+        const { params } = context;
         const id = parseInt(params.id);
+
         const { fullName, department, position, email, phoneNumber, isActive, cardUid } = await req.json();
 
         const existingUser = await prisma.user.findUnique({
@@ -69,7 +85,7 @@ export async function PATCH(req: Request, {params}: {params: {id: string}}) {
                         });
 
                         if(existingCard) {
-                            return NextResponse.json({error: "Card already assigned to another user"}, {status: 400});
+                            throw new Error('Card sudah ditugaskan ke pengguna lain');
                         };
 
                         await tx.rfidCard.update({
@@ -83,7 +99,7 @@ export async function PATCH(req: Request, {params}: {params: {id: string}}) {
                     });
 
                     if(existingCard) {
-                        return NextResponse.json({error: "RFID Card already assigned to another user"}, {status: 400});
+                        throw new Error('RFID Card sudah ditugaskan ke pengguna lain');
                     };
 
                     await tx.rfidCard.create({
@@ -97,15 +113,22 @@ export async function PATCH(req: Request, {params}: {params: {id: string}}) {
 
             return user;
         }).catch((error) => {
-            if(error.message === "Card already assigned to another user") {
-                throw new Error('RFID card already assigned to another user')
+            if(error.message === "Card already assigned to another user" || 
+               error.message === "RFID Card already assigned to another user" ||
+               error.message === "Card sudah ditugaskan ke pengguna lain" ||
+               error.message === "RFID Card sudah ditugaskan ke pengguna lain") {
+                throw new Error(error.message);
             };
             throw error;
         });
 
+        if (!updatedUser || typeof updatedUser !== 'object' || !('fullName' in updatedUser)) {
+            return NextResponse.json({error: "Data pengguna tidak valid dikembalikan"}, {status: 500});
+        }
+
         await prisma.adminActivity.create({
             data: {
-                adminId: adminAuth.id,
+                adminId: adminAuth.id!,
                 action: "UPDATED_USER",
                 description: `Updated user ${updatedUser.fullName} with ID ${id}`,
                 ipAddress: req.headers.get('x-forwarded-for') || ''
@@ -117,23 +140,26 @@ export async function PATCH(req: Request, {params}: {params: {id: string}}) {
             user: updatedUser
         });
     } catch (error) {
-        if (error instanceof Error && error.message === 'RFID card already assigned to another user') {
-            return NextResponse.json(
-              { error: error.message },
-              { status: 400 }
-            );
-        };
+        if (error instanceof Error) {
+            if (error.message === 'RFID Card sudah ditugaskan ke pengguna lain' ||
+                error.message === 'Card sudah ditugaskan ke pengguna lain') {
+                return NextResponse.json(
+                    { error: error.message },
+                    { status: 400 }
+                );
+            }
+        }
 
         return NextResponse.json({error: "Update user failed"}, {status: 406});
     }
 };
 
-
-export async function DELETE(req: Request, {params}: {params: {id: string}}) {
+export async function DELETE(req: Request, context: { params: { id: string}}) {
     try {
         const adminAuth = await verfiyAdminToken(req);
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
+        const { params } = context;
         const id = parseInt(params.id);
 
         const user = await prisma.user.findUnique({where: {id}});
@@ -145,21 +171,20 @@ export async function DELETE(req: Request, {params}: {params: {id: string}}) {
 
         await prisma.adminActivity.create({
             data: {
-                adminId: adminAuth.id,
+                adminId: adminAuth.id!,
                 action: "DELETED_USER",
                 description: `Deleted user ${user.fullName} with ID ${id}`,
-                ipAddress: req.headers.get('x-forwarded-for') || '',
-                timestamp: new Date(),
+                ipAddress: req.headers.get('x-forwarded-for') || ''
             }
         });
 
         return NextResponse.json({
             message: "User deleted successfully"
-        })
+        });
     } catch (error) {
         return NextResponse.json(
             {error: "Deleted user failed"},
             {status: 406}
-        )
+        );
     }
 }
