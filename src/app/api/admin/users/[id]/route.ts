@@ -2,13 +2,13 @@ import { verifyAdminToken } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request, context: {params: {id: string}}) {
+export async function GET(req: Request, { params}: { params: Promise<{id: string}>}) {
     try {
         const adminAuth = await verifyAdminToken(req); 
-        if(!adminAuth) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
+        if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
     
-       const { params } = context;
-       const id = parseInt(params.id);
+        const resolvedParams = await params;
+       const id = parseInt(resolvedParams.id);
 
         const user = await prisma.user.findUnique({
             where: {id},
@@ -45,13 +45,13 @@ export async function GET(req: Request, context: {params: {id: string}}) {
     }
 };
 
-export async function PATCH(req: Request, context: { params: { id: string } }) {
+export async function PATCH(req: Request, { params}: { params: Promise<{id: string}>}) {
     try {
         const adminAuth = await verifyAdminToken(req); 
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
-        const { params } = context;
-        const id = parseInt(params.id);
+        const resolvedParams = await params;
+        const id = parseInt(resolvedParams.id);
 
         const { fullName, department, position, email, phoneNumber, isActive, cardUid } = await req.json();
 
@@ -154,13 +154,13 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
     }
 };
 
-export async function DELETE(req: Request, context: { params: { id: string}}) {
+export async function DELETE(req: Request, { params}: { params: Promise<{id: string}>}) {
     try {
         const adminAuth = await verifyAdminToken(req); 
         if(!adminAuth.success) {return NextResponse.json({error: "Unauthorized"}, {status: 401})};
 
-        const { params } = context;
-        const id = parseInt(params.id);
+        const resolvedParams = await params;
+        const id = parseInt(resolvedParams.id);
 
         const user = await prisma.user.findUnique({where: {id}});
         if(!user) {
