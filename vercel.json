@@ -1,5 +1,5 @@
 {
-    "version": 1,
+    "version": 2,
     "env": {
       "DATABASE_URL": "postgresql://neondb_owner:npg_gGKJzW4Hm9xB@ep-curly-bar-a4z7115x-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require",
       "JWT_SECRET": "3672ea43b1aaee689e4d5c097fea604523ea7d58f419df2e620ce0c197039d0878f2979d314a7a2b1312b4fbc68ac8ba769deefbd499263d7255b736b7b9bf8b"
