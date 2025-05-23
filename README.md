@@ -31,8 +31,7 @@ Content-Type: application/json
   "username": "adminbaru",
   "email": "admin@example.com",
   "password": "password123",
-  "confirmPassword": "password123",
-  "role": "ADMIN"
+  "confirmPassword": "password123"
 }
 ```
 
