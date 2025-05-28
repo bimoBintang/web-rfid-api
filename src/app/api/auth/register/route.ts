@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { withCORS } from "@/lib/withCROS";
 
 const registerSchema = z.object({
   username: z.string().min(1, "username tidak boleh kosong"),
@@ -62,15 +63,15 @@ export async function POST(req: Request) {
       console.log("Admin berhasil dibuat dengan ID:", newAdmin.id);
       const { password: _, ...adminWithoutPassword } = newAdmin;
 
-      return NextResponse.json(
-        { message: "Berhasil register", admin: adminWithoutPassword },
-        { status: 201 }
+      return withCORS(
+        NextResponse.json({ message: "Berhasil register", admin: adminWithoutPassword },{ status: 201 })
       );
-    } catch (dbError: any) {
-      console.error("Database operation error:", dbError);
-      const errorMessage = dbError.message || "Unknown database error";
-      const errorCode = dbError.code || "NO_CODE";
-      const errorMeta = dbError.meta ? JSON.stringify(dbError.meta) : "NO_META";
+
+    } catch (error: any) {
+      console.error("Database operation error:", error);
+      const errorMessage = error.message || "Unknown database error";
+      const errorCode = error.code || "NO_CODE";
+      const errorMeta = error.meta ? JSON.stringify(error.meta) : "NO_META";
       
       console.error(`Error code: ${errorCode}, Message: ${errorMessage}, Meta: ${errorMeta}`);
       
@@ -93,4 +94,16 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': `${process.env.NEXT_PUBLIC_APP_URL}`,
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
+    },
+  });
 }

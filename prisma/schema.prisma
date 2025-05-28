@@ -142,7 +142,7 @@ model AdminActivity {
   admin        Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([timestamp])
-  @@index([adminId])
+  @@index([adminId]) 
   @@map("admin_activities")
 }
 

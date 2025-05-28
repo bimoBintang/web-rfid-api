@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { verifyAdminToken, logAdminActivity } from "@/lib/auth";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     try {
 
         const authHeader = req.headers.get('authorization');
 
-        if(!authHeader && authHeader?.startsWith('Bearer')) {
+        if(!authHeader && authHeader?.startsWith('Bearer ')) {
             const authResult = await verifyAdminToken(req);
 
             if (!authResult.success) {
@@ -39,6 +39,9 @@ export async function POST(req: NextRequest) {
             maxAge: 0
         });
 
+        response.headers.set('Access-Control-Allow-Origin', `${process.env.NEXT_PUBLIC_APP_URL}`);
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
+
         return response;
     } catch (error) {
         console.error("Logout error:", error);
@@ -48,3 +51,15 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+
+export async function OPTIONS() {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': `${process.env.NEXT_PUBLIC_APP_URL}`,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true',
+      },
+    });
+  }

@@ -82,6 +82,8 @@ export async function POST(req: Request) {
         })
 
         response.headers.set('token', token);
+        response.headers.set('Access-Control-Allow-Origin', `${process.env.NEXT_PUBLIC_APP_URL}`);
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
 
         return response;
     } catch (error) {
@@ -91,4 +93,16 @@ export async function POST(req: Request) {
             {status: 500}
         )
     }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': 'http://localhost:5173',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
+    },
+  });
 }
