@@ -70,7 +70,16 @@ export async function POST(req: Request) {
                 username: admin.username,
                 role: admin.role
             }
-        });
+        },
+        {
+            status: 200,
+            headers: {
+                'Access-Control-Allow-Origin': `${process.env.NEXT_PUBLIC_APP_URL}`,
+                'Access-Control-Allow-Credentials': 'true',
+            }
+        }
+    );
+
 
         response.cookies.set({
             name: "token",
@@ -80,10 +89,6 @@ export async function POST(req: Request) {
             sameSite: 'strict',
             maxAge: 60 * 60
         })
-
-        response.headers.set('token', token);
-        response.headers.set('Access-Control-Allow-Origin', `${process.env.NEXT_PUBLIC_APP_URL}`);
-        response.headers.set('Access-Control-Allow-Credentials', 'true');
 
         return response;
     } catch (error) {

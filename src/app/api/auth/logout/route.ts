@@ -28,7 +28,15 @@ export async function POST(req: Request) {
 
         const response = NextResponse.json({
             message: "Logout berhasil"
-        });
+        },
+        {
+            status: 200,
+            headers: {
+                'Access-Control-Allow-Origin': `${process.env.NEXT_PUBLIC_APP_URL}`,
+                'Access-Control-Allow-Credentials': 'true',
+            }
+        }
+    );
 
         response.cookies.set({
             name: "token",
@@ -38,9 +46,6 @@ export async function POST(req: Request) {
             sameSite: 'strict',
             maxAge: 0
         });
-
-        response.headers.set('Access-Control-Allow-Origin', `${process.env.NEXT_PUBLIC_APP_URL}`);
-        response.headers.set('Access-Control-Allow-Credentials', 'true');
 
         return response;
     } catch (error) {

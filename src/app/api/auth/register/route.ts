@@ -64,7 +64,10 @@ export async function POST(req: Request) {
       const { password: _, ...adminWithoutPassword } = newAdmin;
 
       return withCORS(
-        NextResponse.json({ message: "Berhasil register", admin: adminWithoutPassword },{ status: 201 })
+        NextResponse.json({ 
+          message: "Berhasil register", 
+          admin: adminWithoutPassword 
+        },{ status: 201 }),
       );
 
     } catch (error: any) {
